@@ -1,0 +1,59 @@
+# CPQ API Systemd服务配置
+# 位置: /etc/systemd/system/cpq-api.service
+# 使用方法: 
+#   sudo cp cpq-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable cpq-api
+#   sudo systemctl start cpq-api
+
+[Unit]
+Description=CPQ API Server
+After=network.target mysql.service
+Wants=mysql.service
+Requires=network.target
+
+[Service]
+Type=notify
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/cpqh.d1bbk.com
+Environment=PATH=/www/wwwroot/cpqh.d1bbk.com/venv/bin
+Environment=FLASK_ENV=production
+EnvironmentFile=/www/wwwroot/cpqh.d1bbk.com/.env
+
+# 启动命令
+ExecStart=/www/wwwroot/cpqh.d1bbk.com/venv/bin/gunicorn \
+    --config /www/wwwroot/cpqh.d1bbk.com/gunicorn.conf.py \
+    --preload \
+    app:app
+
+# 重启策略
+Restart=always
+RestartSec=3
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryLimit=1G
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/www/wwwroot/cpqh.d1bbk.com
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cpq-api
+
+# 进程管理
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

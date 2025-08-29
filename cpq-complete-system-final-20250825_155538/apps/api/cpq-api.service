@@ -1,0 +1,97 @@
+# CPQ系统 systemd 服务配置文件
+# 文件位置: /etc/systemd/system/cpq-api.service
+# 更新时间: 2024-08-24
+
+[Unit]
+Description=CPQ API Server - Flask Application with Gunicorn
+Documentation=https://cpqh.d1bbk.com/docs
+After=network.target mysql.service
+Wants=mysql.service
+RequiresMountsFor=/www/wwwroot/cpqh.d1bbk.com
+
+[Service]
+# 服务类型
+Type=forking
+
+# 用户和组
+User=www
+Group=www
+
+# 工作目录
+WorkingDirectory=/www/wwwroot/cpqh.d1bbk.com
+
+# 环境变量
+Environment=FLASK_ENV=production
+Environment=PYTHONPATH=/www/wwwroot/cpqh.d1bbk.com
+Environment=PATH=/www/wwwroot/cpqh.d1bbk.com/venv/bin:/usr/local/bin:/usr/bin:/bin
+
+# PID文件
+PIDFile=/www/wwwroot/cpqh.d1bbk.com/tmp/gunicorn.pid
+
+# 启动命令
+ExecStart=/www/wwwroot/cpqh.d1bbk.com/start.sh start
+ExecStop=/www/wwwroot/cpqh.d1bbk.com/start.sh stop
+ExecReload=/bin/kill -HUP $MAINPID
+
+# 启动前准备
+ExecStartPre=/bin/mkdir -p /www/wwwroot/cpqh.d1bbk.com/logs
+ExecStartPre=/bin/mkdir -p /www/wwwroot/cpqh.d1bbk.com/tmp
+ExecStartPre=/bin/chown -R www:www /www/wwwroot/cpqh.d1bbk.com/logs
+ExecStartPre=/bin/chown -R www:www /www/wwwroot/cpqh.d1bbk.com/tmp
+
+# 重启策略
+Restart=always
+RestartSec=10
+
+# 启动超时
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# 内存限制 (可选)
+# MemoryLimit=1G
+
+# 安全设置
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/www/wwwroot/cpqh.d1bbk.com/logs /www/wwwroot/cpqh.d1bbk.com/tmp /www/wwwroot/cpqh.d1bbk.com/instance
+
+# 日志配置
+StandardOutput=append:/www/wwwroot/cpqh.d1bbk.com/logs/systemd.log
+StandardError=append:/www/wwwroot/cpqh.d1bbk.com/logs/systemd-error.log
+
+[Install]
+WantedBy=multi-user.target
+
+# ==============================================
+# 安装和使用说明:
+# ==============================================
+# 1. 复制文件到systemd目录:
+#    sudo cp cpq-api.service /etc/systemd/system/
+#
+# 2. 重新加载systemd配置:
+#    sudo systemctl daemon-reload
+#
+# 3. 启用服务 (开机自启):
+#    sudo systemctl enable cpq-api
+#
+# 4. 启动服务:
+#    sudo systemctl start cpq-api
+#
+# 5. 查看服务状态:
+#    sudo systemctl status cpq-api
+#
+# 6. 查看服务日志:
+#    sudo journalctl -u cpq-api -f
+#
+# 7. 重启服务:
+#    sudo systemctl restart cpq-api
+#
+# 8. 停止服务:
+#    sudo systemctl stop cpq-api
+#
+# 9. 禁用服务:
+#    sudo systemctl disable cpq-api

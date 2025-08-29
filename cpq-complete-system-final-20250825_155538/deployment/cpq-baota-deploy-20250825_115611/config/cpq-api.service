@@ -1,0 +1,22 @@
+[Unit]
+Description=CPQ System API Server
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=exec
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/cpqh.d1bbk.com
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 -m gunicorn --config gunicorn.conf.py app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s QUIT $MAINPID
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cpq-api
+
+[Install]
+WantedBy=multi-user.target

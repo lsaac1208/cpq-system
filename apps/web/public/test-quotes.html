@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>报价API测试</title>
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>报价API测试页面</h1>
+    <button onclick="testQuotes()">测试报价API</button>
+    <button onclick="testWithAdmin()">测试管理员查看所有报价</button>
+    <div id="results"></div>
+
+    <script>
+    // 从localStorage获取token
+    const token = localStorage.getItem('cpq_access_token');
+    
+    function testQuotes() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<p>测试中...</p>';
+        
+        if (!token) {
+            results.innerHTML = '<p style="color:red">未找到登录token，请先登录系统</p>';
+            return;
+        }
+        
+        // 测试默认API调用
+        axios.get('/api/quotes', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(response => {
+            console.log('API响应:', response.data);
+            results.innerHTML = `
+                <h3>✅ API调用成功</h3>
+                <p><strong>返回报价数量:</strong> ${response.data.quotes?.length || 0}</p>
+                <p><strong>总数:</strong> ${response.data.pagination?.total || response.data.total || 0}</p>
+                <pre>${JSON.stringify(response.data, null, 2)}</pre>
+            `;
+        })
+        .catch(error => {
+            console.error('API错误:', error);
+            results.innerHTML = `
+                <h3 style="color:red">❌ API调用失败</h3>
+                <p><strong>状态码:</strong> ${error.response?.status || 'Network Error'}</p>
+                <p><strong>错误信息:</strong> ${error.response?.data?.error || error.message}</p>
+            `;
+        });
+    }
+    
+    function testWithAdmin() {
+        const results = document.getElementById('results');
+        results.innerHTML = '<p>测试管理员查看所有报价...</p>';
+        
+        if (!token) {
+            results.innerHTML = '<p style="color:red">未找到登录token，请先登录系统</p>';
+            return;
+        }
+        
+        // 测试管理员查看所有报价
+        axios.get('/api/quotes?created_by=all', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(response => {
+            console.log('管理员API响应:', response.data);
+            results.innerHTML = `
+                <h3>✅ 管理员API调用成功</h3>
+                <p><strong>返回报价数量:</strong> ${response.data.quotes?.length || 0}</p>
+                <p><strong>总数:</strong> ${response.data.pagination?.total || response.data.total || 0}</p>
+                <pre>${JSON.stringify(response.data, null, 2)}</pre>
+            `;
+        })
+        .catch(error => {
+            console.error('管理员API错误:', error);
+            results.innerHTML = `
+                <h3 style="color:red">❌ 管理员API调用失败</h3>
+                <p><strong>状态码:</strong> ${error.response?.status || 'Network Error'}</p>
+                <p><strong>错误信息:</strong> ${error.response?.data?.error || error.message}</p>
+            `;
+        });
+    }
+    </script>
+</body>
+</html>

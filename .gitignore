@@ -1,0 +1,97 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Temporary files
+tmp/
+temp/
+
+# Python virtual environment
+venv/
+env/
+
+# Upload directories
+uploads/
+*/uploads/
+instance/uploads/
+
+# Database instances
+instance/
+*/instance/
+
+# Test files
+test-*.js
+verify-*.js
+验证*.js
+PDF表格*.js
+
+# API specific
+apps/api/instance/
+apps/api/uploads/
+
+# Testing artifacts
+test-results.xml
+junit.xml
+.pytest_cache/
+.coverage
+*.tsbuildinfo
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Migration logs
+*.migration.log
+
+# Font files (keep config, ignore binaries)
+*.ttf
+*.otf
+*.woff
+*.woff2
+!public/fonts/README.md

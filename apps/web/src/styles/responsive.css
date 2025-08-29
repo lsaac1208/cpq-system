@@ -1,0 +1,437 @@
+/* 响应式设计样式 */
+
+/* 基础响应式断点 */
+:root {
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1400px;
+  
+  /* 移动端优化变量 */
+  --mobile-padding: 16px;
+  --mobile-font-size: 14px;
+  --mobile-line-height: 1.4;
+  --mobile-button-height: 44px;
+  --mobile-input-height: 44px;
+  --mobile-touch-target: 44px;
+}
+
+/* 移动端基础样式 */
+@media (max-width: 768px) {
+  /* 增大触摸目标 */
+  .el-button {
+    min-height: var(--mobile-button-height);
+    padding: 0 16px;
+  }
+  
+  .el-input__inner {
+    height: var(--mobile-input-height);
+    font-size: var(--mobile-font-size);
+  }
+  
+  .el-select .el-input__inner {
+    height: var(--mobile-input-height);
+  }
+  
+  /* 表单优化 */
+  .el-form-item__label {
+    font-size: var(--mobile-font-size);
+    line-height: var(--mobile-line-height);
+    margin-bottom: 8px;
+  }
+  
+  .el-form-item {
+    margin-bottom: 20px;
+  }
+  
+  /* 卡片优化 */
+  .el-card {
+    margin: 8px;
+    border-radius: 8px;
+  }
+  
+  .el-card__header {
+    padding: 16px;
+  }
+  
+  .el-card__body {
+    padding: 16px;
+  }
+  
+  /* 对话框优化 */
+  .el-dialog {
+    width: 95% !important;
+    margin-top: 5vh !important;
+    margin-bottom: 5vh !important;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+  
+  .el-dialog__header {
+    padding: 16px 16px 0;
+  }
+  
+  .el-dialog__body {
+    padding: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  
+  .el-dialog__footer {
+    padding: 0 16px 16px;
+  }
+  
+  /* 表格优化 */
+  .el-table {
+    font-size: 13px;
+  }
+  
+  .el-table .el-table__cell {
+    padding: 8px 0;
+  }
+  
+  .el-table__header th {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  
+  /* 分页优化 */
+  .el-pagination {
+    justify-content: center;
+    margin-top: 16px;
+  }
+  
+  .el-pagination .el-pagination__sizes {
+    display: none;
+  }
+  
+  .el-pagination .el-pagination__jump {
+    display: none;
+  }
+  
+  /* Tab优化 */
+  .el-tabs__header {
+    margin-bottom: 16px;
+  }
+  
+  .el-tabs__item {
+    font-size: var(--mobile-font-size);
+    padding: 0 12px;
+    height: 40px;
+    line-height: 40px;
+  }
+  
+  .el-tabs__content {
+    padding: 0;
+  }
+  
+  /* 菜单优化 */
+  .el-menu-item {
+    min-width: auto;
+    height: var(--mobile-touch-target);
+    line-height: var(--mobile-touch-target);
+  }
+  
+  .el-sub-menu__title {
+    height: var(--mobile-touch-target);
+    line-height: var(--mobile-touch-target);
+  }
+  
+  /* 文件上传优化 */
+  .el-upload {
+    width: 100%;
+  }
+  
+  .el-upload-dragger {
+    width: 100%;
+    padding: 24px 16px;
+  }
+  
+  /* 消息优化 */
+  .el-message {
+    min-width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    left: 16px !important;
+    right: 16px;
+    transform: translateX(0) !important;
+  }
+  
+  .el-notification {
+    width: calc(100vw - 32px);
+    left: 16px !important;
+    right: 16px;
+  }
+  
+  /* 抽屉优化 */
+  .el-drawer {
+    width: 100% !important;
+  }
+  
+  .el-drawer__header {
+    padding: 16px;
+    margin-bottom: 0;
+  }
+  
+  .el-drawer__body {
+    padding: 16px;
+  }
+}
+
+/* 超小屏幕优化 (< 576px) */
+@media (max-width: 575px) {
+  :root {
+    --mobile-padding: 12px;
+    --mobile-font-size: 13px;
+  }
+  
+  .el-card {
+    margin: 4px;
+  }
+  
+  .el-form-item__label {
+    font-size: 13px;
+  }
+  
+  .el-button {
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  
+  .el-input__inner {
+    font-size: 13px;
+  }
+  
+  /* 隐藏不必要的元素 */
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  /* 紧凑布局 */
+  .el-row {
+    margin: 0 -4px;
+  }
+  
+  .el-col {
+    padding: 0 4px;
+  }
+}
+
+/* 平板优化 (576px - 992px) */
+@media (min-width: 576px) and (max-width: 991px) {
+  .el-dialog {
+    width: 90% !important;
+    margin-top: 8vh !important;
+  }
+  
+  .el-table {
+    font-size: 14px;
+  }
+  
+  .el-pagination .el-pagination__sizes {
+    display: inline-block;
+  }
+}
+
+/* 桌面优化 (> 992px) */
+@media (min-width: 992px) {
+  .mobile-only {
+    display: none !important;
+  }
+  
+  /* 增强的桌面交互 */
+  .el-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .el-button:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+  }
+}
+
+/* 高分辨率屏幕优化 */
+@media (min-resolution: 2dppx) {
+  .el-icon {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  .auto-theme {
+    --el-color-primary: #409eff;
+    --el-bg-color: #1a1a1a;
+    --el-text-color-primary: #e5eaf3;
+    --el-text-color-regular: #cfd3dc;
+    --el-border-color: #4c4d4f;
+  }
+}
+
+/* 减少动画效果 (用户偏好) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .el-button {
+    border-width: 2px;
+  }
+  
+  .el-input__inner {
+    border-width: 2px;
+  }
+  
+  .el-card {
+    border-width: 2px;
+  }
+}
+
+/* 横屏手机优化 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .el-dialog {
+    max-height: 95vh;
+  }
+  
+  .el-dialog__body {
+    max-height: 60vh;
+  }
+  
+  /* 压缩垂直空间 */
+  .el-form-item {
+    margin-bottom: 12px;
+  }
+  
+  .el-card__header {
+    padding: 12px 16px;
+  }
+  
+  .el-card__body {
+    padding: 12px 16px;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 增大可点击区域 */
+  .clickable {
+    min-height: var(--mobile-touch-target);
+    min-width: var(--mobile-touch-target);
+  }
+  
+  /* 禁用悬停效果 */
+  .hover-effect:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* 优化滚动 */
+  .scrollable {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* 键盘导航优化 */
+.el-button:focus-visible,
+.el-input__inner:focus-visible,
+.el-select:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+/* 加载状态优化 */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+@media (max-width: 768px) {
+  .loading-overlay {
+    background: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* 辅助类 */
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block;
+  }
+  
+  .desktop-only {
+    display: none;
+  }
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-break {
+  word-break: break-all;
+  word-wrap: break-word;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.center-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.space-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 安全区域适配 (iPhone X 等) */
+@supports (padding: max(0px)) {
+  .safe-area-inset-top {
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+  
+  .safe-area-inset-bottom {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-inset-left {
+    padding-left: max(16px, env(safe-area-inset-left));
+  }
+  
+  .safe-area-inset-right {
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}

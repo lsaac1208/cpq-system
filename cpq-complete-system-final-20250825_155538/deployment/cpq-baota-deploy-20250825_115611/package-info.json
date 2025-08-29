@@ -1,0 +1,29 @@
+{
+  "package_name": "cpq-baota-deploy-20250825_115611",
+  "project_name": "CPQ系统",
+  "version": "1.0.0",
+  "build_date": "20250825_115611",
+  "build_timestamp": "2025-08-25T03:56:14Z",
+  "sizes": {
+    "backend": " 12M",
+    "frontend": " 17M", 
+    "total": " 29M"
+  },
+  "file_count":      442,
+  "components": {
+    "backend_included": true,
+    "frontend_included": true,
+    "config_included": true,
+    "scripts_included": true,
+    "docs_included": true
+  },
+  "requirements": {
+    "os": "Linux (CentOS 7+ / Ubuntu 18+ / Debian 9+)",
+    "python": "3.8+",
+    "mysql": "5.7+ / 8.0+",
+    "nginx": "1.18+",
+    "baota_panel": "7.7.0+",
+    "memory": "2GB+",
+    "disk": "5GB+"
+  }
+}

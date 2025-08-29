@@ -1,0 +1,44 @@
+{
+  "name": "cpq-system",
+  "version": "1.0.0",
+  "description": "Electric Equipment Manufacturing CPQ System",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "cd apps/api && ./start_api.sh",
+    "dev:web": "cd apps/web && npm run dev",
+    "build": "npm run build:web",
+    "build:web": "cd apps/web && npm run build",
+    "install:all": "npm install && cd apps/web && npm install && cd ../api && pip install -r requirements.txt",
+    "setup": "npm run install:all && npm run db:init",
+    "db:init": "cd apps/api && python scripts/init_db.py",
+    "test": "npm run test:web",
+    "test:web": "cd apps/web && npm run test"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0",
+    "python": ">=3.11.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/cpq-system.git"
+  },
+  "keywords": [
+    "cpq",
+    "electric-equipment",
+    "flask",
+    "vue",
+    "typescript",
+    "monorepo"
+  ],
+  "author": "Your Team",
+  "license": "MIT"
+}
