@@ -21,13 +21,13 @@ def require_admin(f):
     def decorated_function(*args, **kwargs):
         try:
             verify_jwt_in_request()
-            user_id = get_jwt_identity()
-            user = User.query.get(user_id)
+            username = get_jwt_identity()
+            user = User.query.filter_by(username=username).first()
             
             if not user:
                 return jsonify({'error': 'User not found'}), 401
             
-            if not getattr(user, 'is_admin', False):
+            if user.role != 'admin':
                 return jsonify({'error': 'Admin privileges required'}), 403
                 
             return f(*args, **kwargs)
@@ -40,7 +40,7 @@ def get_current_user():
     """Get the current authenticated user."""
     try:
         verify_jwt_in_request()
-        user_id = get_jwt_identity()
-        return User.query.get(user_id)
+        username = get_jwt_identity()
+        return User.query.filter_by(username=username).first()
     except Exception:
         return None

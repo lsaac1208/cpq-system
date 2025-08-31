@@ -25,9 +25,17 @@ class User(BaseModel):
     
     def get_tokens(self):
         """Generate JWT tokens for user."""
-        # 🔧 修复：使用用户名作为JWT身份标识，而不是用户ID
+        # 🔧 修复：使用用户名作为JWT身份标识，添加必要的claims
+        additional_claims = {
+            'sub': self.username,  # 添加sub claim
+            'role': self.role,
+            'user_id': self.id
+        }
         return {
-            'access_token': create_access_token(identity=self.username),
+            'access_token': create_access_token(
+                identity=self.username,
+                additional_claims=additional_claims
+            ),
             'refresh_token': create_refresh_token(identity=self.username)
         }
     

@@ -814,10 +814,15 @@ def get_analysis_statistics():
         total_records = AIAnalysisRecord.query.count()
         successful_records = AIAnalysisRecord.query.filter_by(success=True).count()
         
+        # 获取处理中的任务数量
+        processing_count = AIAnalysisRecord.query.filter_by(status='processing').count()
+        
         # 获取最近的分析记录
         recent_records = AIAnalysisRecord.query\
                                         .order_by(AIAnalysisRecord.created_at.desc())\
                                         .limit(5).all()
+        
+        logger.info(f"Statistics: total={total_records}, successful={successful_records}, processing={processing_count}, success_rate={success_rate}, avg_confidence={avg_confidence}")
         
         return jsonify({
             'success': True,
@@ -826,9 +831,9 @@ def get_analysis_statistics():
                 'successful_analyses': successful_records,
                 'success_rate': success_rate,
                 'average_confidence': avg_confidence,
+                'processing_count': processing_count,
                 'period_days': days
-            },
-            'recent_analyses': [record.to_dict() for record in recent_records]
+            }
         })
         
     except Exception as e:
@@ -977,4 +982,57 @@ def get_analysis_optimization(document_type):
         
     except Exception as e:
         logger.error(f"Error getting analysis optimization: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@ai_analysis_bp.route('/recent-results', methods=['GET'])
+@jwt_required()
+def get_recent_analysis_results():
+    """获取最近的分析结果列表"""
+    try:
+        current_user_id = get_jwt_identity()
+        limit = request.args.get('limit', 10, type=int)
+        
+        # 获取最近的分析记录
+        recent_records = AIAnalysisRecord.query.filter_by(user_id=current_user_id)\
+                                                .order_by(AIAnalysisRecord.created_at.desc())\
+                                                .limit(limit).all()
+        
+        results = []
+        for record in recent_records:
+            confidence_data = record.confidence_scores or {}
+            extracted_data = record.extracted_data or {}
+            basic_info = extracted_data.get('basic_info', {})
+            specs = extracted_data.get('specifications', {})
+            
+            results.append({
+                'id': record.id,
+                'document_name': record.document_name,
+                'analysis_date': record.created_at.isoformat() if record.created_at else None,
+                'status': record.status,
+                'success': record.success,
+                'confidence': {
+                    'overall': confidence_data.get('overall', 0),
+                    'basic_info': confidence_data.get('basic_info', 0),
+                    'specifications': confidence_data.get('specifications', 0),
+                    'features': confidence_data.get('features', 0)
+                },
+                'product_info': {
+                    'name': basic_info.get('name', ''),
+                    'code': basic_info.get('code', ''),
+                    'category': basic_info.get('category', ''),
+                    'specs_count': len(specs) if specs else 0
+                },
+                'analysis_duration': record.analysis_duration,
+                'created_product_id': record.created_product_id
+            })
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'total_count': len(results)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting recent analysis results: {str(e)}")
         return jsonify({'error': str(e)}), 500

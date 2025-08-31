@@ -500,8 +500,15 @@ class ConfidenceScorer:
         technical_keywords = [
             '电压', '电流', '功率', '频率', '温度', '湿度', '精度', '量程',
             '阻抗', '电阻', '电容', '电感', '功耗', '效率', '噪声',
+            '分辨率', '变比', '外形', '尺寸', '重量', '防护', '工作', '测试',
+            '输出', '输入', '供电', '电源', '绝缘', '耐压', '寿命', '响应',
+            '速度', '采样', '通信', '接口', '协议', '显示', '存储', '内存',
+            '处理器', '时钟', '晶振', '相位', '相数', '档位', '量程', '倍数',
             'voltage', 'current', 'power', 'frequency', 'temperature', 'accuracy',
-            'range', 'impedance', 'resistance', 'efficiency', 'noise'
+            'range', 'impedance', 'resistance', 'efficiency', 'noise',
+            'resolution', 'ratio', 'size', 'weight', 'protection', 'working',
+            'test', 'input', 'output', 'supply', 'insulation', 'life', 'response',
+            'speed', 'sampling', 'communication', 'interface', 'protocol', 'display'
         ]
         param_lower = param_name.lower()
         return any(keyword.lower() in param_lower for keyword in technical_keywords)
