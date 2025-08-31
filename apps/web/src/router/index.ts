@@ -104,6 +104,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/PricingDecision.vue'),
         meta: { requiresAuth: true }
       },
+      {
+        path: '/pricing-decision-support',
+        name: 'PricingDecisionSupport',
+        component: () => import('@/views/PricingDecision.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
+        path: '/ai-analysis',
+        name: 'AIAnalysis',
+        component: () => import('@/views/AIAnalysisEnhanced.vue'),
+        meta: { requiresAuth: true }
+      },
     ]
   },
   {

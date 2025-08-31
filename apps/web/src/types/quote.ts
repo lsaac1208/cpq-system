@@ -21,7 +21,7 @@ export interface Quote extends BaseEntity {
   base_price?: number
   
   // Quote totals
-  subtotal: number
+  subtotal?: number
   discount_amount?: number
   discount_percentage?: number
   tax_amount?: number

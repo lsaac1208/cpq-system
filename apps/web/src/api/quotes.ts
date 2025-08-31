@@ -78,35 +78,75 @@ export const multiQuotesApi = {
 export const unifiedQuotesApi = {
   // Get all quotes (both single and multi-product)
   async getAllQuotes(params?: QuoteSearchParams): Promise<QuoteListResponse> {
+    console.log('🚀 統一API開始執行 getAllQuotes，參數:', params)
+    
     const singleQuotes: Quote[] = []
     const multiQuotes: Quote[] = []
     let totalSingle = 0
     let totalMulti = 0
 
-    // Fetch both single-product and multi-product quotes in parallel
+    try {
+      // Fetch both single-product and multi-product quotes in parallel
+      console.log('📞 开始调用API...')
     const [singleResponse, multiResponse] = await Promise.allSettled([
-      quotesApi.getQuotes(params).catch(error => {
-        console.warn('Single quotes API failed:', error)
+      quotesApi.getQuotes(params).then(result => {
+        console.log('✅ Single quotes API success:', result)
+        return result
+      }).catch(error => {
+        console.error('❌ Single quotes API failed:', error)
         return null
       }),
-      multiQuotesApi.getMultiQuotes(params).catch(error => {
-        console.warn('Multi quotes API failed:', error)
+      multiQuotesApi.getMultiQuotes(params).then(result => {
+        console.log('✅ Multi quotes API success:', result)
+        return result
+      }).catch(error => {
+        console.error('❌ Multi quotes API failed:', error)
         return null
       })
     ])
+    
+    console.log('📊 Promise.allSettled results:')
+    console.log('- singleResponse:', singleResponse)
+    console.log('- multiResponse:', multiResponse)
 
-    // Process single quotes response
-    if (singleResponse.status === 'fulfilled' && singleResponse.value) {
-      const response = singleResponse.value
-      if (response.quotes && Array.isArray(response.quotes)) {
-        singleQuotes.push(...response.quotes)
+    // Process single quotes response and normalize data structure
+    console.log('📋 处理单产品报价响应...')
+    if (singleResponse.status === 'fulfilled') {
+      console.log('✅ 单产品报价Promise fulfilled:', singleResponse.value)
+      if (singleResponse.value && singleResponse.value.data && singleResponse.value.data.quotes && Array.isArray(singleResponse.value.data.quotes)) {
+        const response = singleResponse.value.data
+        console.log(`📊 单产品报价数据: ${response.quotes.length}条`)
+        
+        // Normalize single quotes to match unified structure
+        const normalizedSingleQuotes = response.quotes.map((quote: any) => ({
+          ...quote,
+          // Add missing subtotal field for single quotes (use total_price as subtotal)
+          subtotal: quote.total_price || quote.final_price || 0,
+          // Ensure we have all required fields
+          items: quote.product_id ? [{
+            product_id: quote.product_id,
+            product: quote.product,
+            quantity: quote.quantity || 1,
+            unit_price: quote.unit_price || 0,
+            line_total: quote.total_price || quote.final_price || 0,
+            configuration: quote.configuration
+          }] : [],
+          version: 1 // Default version for single quotes
+        }))
+        
+        singleQuotes.push(...normalizedSingleQuotes)
         totalSingle = response.pagination?.total || response.quotes.length
+        console.log(`✅ 成功添加${singleQuotes.length}条单产品报价`)
+      } else {
+        console.warn('⚠️ 单产品报价响应格式异常:', singleResponse.value)
       }
+    } else {
+      console.error('❌ 单产品报价Promise rejected:', singleResponse)
     }
 
     // Process multi quotes response
     if (multiResponse.status === 'fulfilled' && multiResponse.value) {
-      const response = multiResponse.value
+      const response = multiResponse.value.data || multiResponse.value
       if (response.quotes && Array.isArray(response.quotes)) {
         multiQuotes.push(...response.quotes)
         // Handle consistent pagination structure
@@ -118,9 +158,21 @@ export const unifiedQuotesApi = {
       }
     }
 
+    // Debug logging
+    console.log('🔍 Debug API Response Processing:')
+    console.log('- Single quotes count:', singleQuotes.length)
+    console.log('- Multi quotes count:', multiQuotes.length)
+    console.log('- Total single:', totalSingle)
+    console.log('- Total multi:', totalMulti)
+    console.log('- Sample single quote:', singleQuotes[0])
+    console.log('- Sample multi quote:', multiQuotes[0])
+
     // Combine quotes from both APIs
     const allQuotes = [...singleQuotes, ...multiQuotes]
     const totalQuotes = totalSingle + totalMulti
+
+    console.log('- Combined quotes count:', allQuotes.length)
+    console.log('- Total calculated:', totalQuotes)
 
     // Sort by creation date (newest first) to maintain consistency
     allQuotes.sort((a, b) => {
@@ -136,7 +188,8 @@ export const unifiedQuotesApi = {
     const endIndex = startIndex + perPage
     const paginatedQuotes = allQuotes.slice(startIndex, endIndex)
 
-    return {
+    // Final result to return
+    const result = {
       quotes: paginatedQuotes,
       pagination: {
         page: page,
@@ -145,6 +198,26 @@ export const unifiedQuotesApi = {
         pages: Math.ceil(totalQuotes / perPage)
       }
     } as QuoteListResponse
+
+    console.log('🎉 統一API最終返回結果:', result)
+    console.log('🎉 最終報價數量:', result.quotes.length)
+    console.log('🎉 分頁信息:', result.pagination)
+
+    return result
+    
+  } catch (error) {
+      console.error('❌ 統一API執行失敗:', error)
+      // 返回空結果而不是拋出錯誤
+      return {
+        quotes: [],
+        pagination: {
+          page: params?.page || 1,
+          per_page: params?.per_page || 20,
+          total: 0,
+          pages: 0
+        }
+      } as QuoteListResponse
+    }
   },
 
   // Create a quote (automatically use multi-product API for items array)

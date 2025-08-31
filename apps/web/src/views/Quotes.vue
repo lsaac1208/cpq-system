@@ -539,51 +539,47 @@ const handleSortChange = ({ prop, order }: { prop: string; order: string | null 
   }
 }
 
-// Data loading - 重写为直接API调用
+// Data loading - 使用统一API加载所有报价类型
 const loadQuotes = async () => {
   loading.value = true
   try {
-    // 构建查询参数
-    const queryParams = new URLSearchParams()
-    if (filters.search) queryParams.append('search', filters.search)
-    if (filters.status) queryParams.append('status', filters.status)
-    if (filters.date_from) queryParams.append('date_from', filters.date_from)
-    if (filters.date_to) queryParams.append('date_to', filters.date_to)
-    if (filters.created_by) queryParams.append('created_by', filters.created_by.toString())
-    queryParams.append('page', currentPage.value.toString())
-    queryParams.append('per_page', pageSize.value.toString())
-    queryParams.append('sort_by', sortConfig.field)
-    queryParams.append('sort_order', sortConfig.order)
-
-    console.log('🔍 API调用参数:', queryParams.toString())
-
-    // 直接使用fetch调用API
-    const token = localStorage.getItem('cpq_access_token')
-    if (!token) {
-      throw new Error('用户未登录')
+    // 构建查询参数对象
+    const queryParams: QuoteSearchParams = {
+      page: currentPage.value,
+      per_page: pageSize.value,
+      sort_by: sortConfig.field,
+      sort_order: sortConfig.order
+    }
+    
+    if (filters.search) queryParams.search = filters.search
+    if (filters.status) queryParams.status = filters.status
+    if (filters.date_from) queryParams.date_from = filters.date_from
+    if (filters.date_to) queryParams.date_to = filters.date_to
+    if (filters.min_amount) queryParams.min_amount = filters.min_amount
+    if (filters.max_amount) queryParams.max_amount = filters.max_amount
+    
+    // 🔧 修复：管理员需要明确传递 created_by=all 才能看到所有报价
+    if (filters.created_by !== null) {
+      queryParams.created_by = filters.created_by
+    } else if (authStore.isAdmin) {
+      // 管理员默认查看所有报价
+      queryParams.created_by = 'all'
     }
 
-    const response = await fetch(`/api/v1/quotes?${queryParams}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
+    console.log('🔍 使用统一API加载报价，参数:', queryParams)
 
-    if (!response.ok) {
-      throw new Error(`API调用失败: ${response.status}`)
-    }
+    // 使用统一API加载所有报价（包括单产品和多产品报价）
+    const data = await unifiedQuotesApi.getAllQuotes(queryParams)
+    
+    console.log('📊 统一API响应:', data)
 
-    const data = await response.json()
-    console.log('📊 API原始响应:', data)
-
-    // 直接处理响应数据
+    // 处理响应数据
     if (data && data.quotes && Array.isArray(data.quotes)) {
       quotes.value = data.quotes
       total.value = data.pagination?.total || data.quotes.length
-      console.log(`✅ 成功加载${quotes.value.length}个报价，总计${total.value}个`)
+      console.log(`✅ 成功加载${quotes.value.length}个报价（单产品+多产品），总计${total.value}个`)
     } else {
-      console.warn('⚠️ API响应格式异常:', data)
+      console.warn('⚠️ 统一API响应格式异常:', data)
       quotes.value = []
       total.value = 0
       showMessage.warning('无法加载报价数据，请检查服务器连接')
@@ -593,25 +589,25 @@ const loadQuotes = async () => {
     quotes.value = []
     total.value = 0
     
-    // Provide more specific error messages
+    // 更具体的错误消息
     if (error.response) {
       const status = error.response.status
       const message = error.response.data?.message || error.message
       console.error('API Error:', { status, message, data: error.response.data })
       
       if (status === 404) {
-        showMessage.error('Quotes endpoint not found. Please check API configuration.')
+        showMessage.error('报价接口未找到，请检查API配置')
       } else if (status >= 500) {
-        showMessage.error('Server error. Please try again later.')
+        showMessage.error('服务器错误，请稍后重试')
       } else {
-        showMessage.error(`Failed to load quotes: ${message}`)
+        showMessage.error(`加载报价失败: ${message}`)
       }
     } else if (error.request) {
       console.error('Network Error:', error.request)
-      showMessage.error('Network error. Please check your connection.')
+      showMessage.error('网络连接错误，请检查网络')
     } else {
       console.error('Error:', error.message)
-      showMessage.error('Failed to load quotes')
+      showMessage.error('加载报价失败')
     }
   } finally {
     loading.value = false

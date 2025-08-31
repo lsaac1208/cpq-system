@@ -172,7 +172,8 @@ import {
   Star, 
   Trophy, 
   Timer, 
-  Stopwatch 
+  Stopwatch,
+  Menu
 } from '@element-plus/icons-vue'
 import type { AIAnalysisResult } from '@/types/ai-analysis'
 

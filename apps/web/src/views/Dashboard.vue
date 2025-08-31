@@ -189,7 +189,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { unifiedQuotesApi } from '@/api/quotes'
+import { quotesApi, multiQuotesApi } from '@/api/quotes'
 import { productsApi } from '@/api/products'
 import { getAnalysisHistory } from '@/api/ai-analysis'
 import { Box, Document, Clock, Money, Plus, MagicStick } from '@element-plus/icons-vue'
@@ -232,9 +232,45 @@ const truncateText = (text: string, maxLength: number): string => {
 const loadDashboardData = async () => {
   loading.value = true
   try {
-    // Load recent quotes
-    const quotesResponse = await unifiedQuotesApi.getAllQuotes({ page: 1, per_page: 5 })
-    recentQuotes.value = quotesResponse?.quotes || []
+    console.log('🚀 儀表板開始加載數據...')
+    
+    // 直接調用分別的API並手動合併
+    console.log('📞 直接調用分別的API...')
+    const [singleResult, multiResult] = await Promise.allSettled([
+      quotesApi.getQuotes({ page: 1, per_page: 5 }),
+      multiQuotesApi.getMultiQuotes({ page: 1, per_page: 5 })
+    ])
+    
+    console.log('📊 分別API調用結果:')
+    console.log('- 單產品結果:', singleResult)
+    console.log('- 多產品結果:', multiResult)
+    
+    let allQuotes: Quote[] = []
+    let totalQuotes = 0
+    
+    // 處理單產品結果
+    if (singleResult.status === 'fulfilled' && singleResult.value?.data?.quotes) {
+      console.log('✅ 單產品API成功，數量:', singleResult.value.data.quotes.length)
+      allQuotes.push(...singleResult.value.data.quotes)
+      totalQuotes += singleResult.value.data.pagination?.total || 0
+    } else {
+      console.error('❌ 單產品API失敗:', singleResult)
+    }
+    
+    // 處理多產品結果
+    if (multiResult.status === 'fulfilled' && multiResult.value?.data?.quotes) {
+      console.log('✅ 多產品API成功，數量:', multiResult.value.data.quotes.length)
+      allQuotes.push(...multiResult.value.data.quotes)
+      totalQuotes += multiResult.value.data.pagination?.total || 0
+    } else {
+      console.error('❌ 多產品API失敗:', multiResult)
+    }
+    
+    console.log('📋 合併後報價數量:', allQuotes.length)
+    console.log('📋 總報價數:', totalQuotes)
+    
+    recentQuotes.value = allQuotes.slice(0, 5)
+    console.log('📋 儀表板設置recentQuotes:', recentQuotes.value.length)
 
     // Load products count
     const productsResponse = await productsApi.getProducts({ page: 1, per_page: 1 })
@@ -248,15 +284,17 @@ const loadDashboardData = async () => {
       recentAnalysis.value = []
     }
     
-    // Calculate stats with safe access
+    // Calculate stats with merged data
     stats.value = {
       products: productsResponse?.pagination?.total || 0,
-      quotes: quotesResponse?.pagination?.total || 0,
-      pendingQuotes: (quotesResponse?.quotes || []).filter(q => q.status === 'pending').length,
-      revenue: (quotesResponse?.quotes || [])
+      quotes: totalQuotes,
+      pendingQuotes: allQuotes.filter(q => q.status === 'pending').length,
+      revenue: allQuotes
         .filter(q => q.status === 'approved')
-        .reduce((sum, q) => sum + (q.final_price || 0), 0)
+        .reduce((sum, q) => sum + (q.final_price || q.total_price || 0), 0)
     }
+    
+    console.log('📊 最終統計數據:', stats.value)
   } catch (error) {
     console.error('Failed to load dashboard data:', error)
     // Set default values on error

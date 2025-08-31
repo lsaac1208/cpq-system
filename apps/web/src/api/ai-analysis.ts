@@ -90,10 +90,8 @@ export const getAnalysisHistory = (params?: {
 /**
  * 获取AI分析统计信息 (管理员)
  */
-export const getAnalysisStatistics = (params?: {
-  days?: number
-}): Promise<AnalysisStatisticsResponse> => {
-  return http.get(`${BASE_URL}/statistics`, { params })
+export const getAnalysisStatistics = (days: number = 30): Promise<AnalysisStatisticsResponse> => {
+  return http.get(`${BASE_URL}/statistics?days=${days}`)
 }
 
 /**
@@ -318,4 +316,36 @@ export const calculateAnalysisStats = (results: AIAnalysisResult[]): {
     avgConfidence,
     avgDuration
   }
+}
+
+
+/**
+ * 获取最近的分析结果列表
+ */
+export const getRecentAnalysisResults = (limit: number = 10): Promise<{
+  success: boolean
+  results: Array<{
+    id: number
+    document_name: string
+    analysis_date: string
+    status: string
+    success: boolean
+    confidence: {
+      overall: number
+      basic_info: number
+      specifications: number
+      features: number
+    }
+    product_info: {
+      name: string
+      code: string
+      category: string
+      specs_count: number
+    }
+    analysis_duration: number
+    created_product_id: number | null
+  }>
+  total_count: number
+}> => {
+  return http.get(`${BASE_URL}/recent-results?limit=${limit}`)
 }

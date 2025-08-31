@@ -273,7 +273,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 // ElMessage removed
@@ -281,7 +281,7 @@ import { showMessage } from '@/utils/message'
 import { Document, FolderOpened, DocumentCopy, EditPen } from '@element-plus/icons-vue'
 import EnhancedSingleAnalysis from '@/components/ai/EnhancedSingleAnalysis.vue'
 import RecentAnalysisResults from '@/components/ai/RecentAnalysisResults.vue'
-import { getAnalysisStatistics } from '@/api/ai-analysis'
+import { getAnalysisStatistics, getRecentAnalysisResults } from '@/api/ai-analysis'
 import type { AIAnalysisResult } from '@/types/ai-analysis'
 
 const router = useRouter()
@@ -313,14 +313,9 @@ const avgResponseTime = ref(850)
 const handleSingleAnalysisSuccess = (result: AIAnalysisResult) => {
   showMessage.success('分析完成！')
   
-  // 添加到最近结果
-  recentResults.value.unshift(result)
-  if (recentResults.value.length > 5) {
-    recentResults.value = recentResults.value.slice(0, 5)
-  }
-  
-  // 更新统计
+  // 更新统计和最近结果
   loadStatistics()
+  loadRecentResults()
 }
 
 const handleAnalysisError = (error: string) => {
@@ -338,23 +333,114 @@ const viewAllResults = () => {
 }
 
 const loadStatistics = async () => {
-  // 检查权限
-  if (!hasPermission.value) {
-    console.warn('用户无AI分析权限，跳过统计数据加载')
+  // 只检查认证状态，让API处理权限控制
+  if (!isAuthenticated.value) {
+    console.warn('用户未认证，跳过统计数据加载')
     return
   }
   
+  console.log('=== 开始加载统计数据 ===')
+  console.log('当前stats对象:', JSON.stringify(stats))
+  
   try {
-    const response = await getAnalysisStatistics({ days: 30 })
+    const response = await getAnalysisStatistics(30)
+    console.log('API Response:', JSON.stringify(response, null, 2))
+    console.log('API Response Data:', JSON.stringify(response.data, null, 2))
     
-    if (response.success) {
-      stats.totalAnalyses = response.statistics.total_analyses
-      stats.successRate = response.statistics.success_rate
-      stats.avgConfidence = response.statistics.average_confidence
+    // 修复：访问response.data而不是response直接属性
+    if (response && response.data && response.data.success && response.data.statistics) {
+      const statistics = response.data.statistics
+      console.log('Statistics from API:', JSON.stringify(statistics, null, 2))
+      
+      // 直接逐个赋值而不是Object.assign
+      stats.totalAnalyses = Number(statistics.total_analyses) || 0
+      stats.successRate = Number(statistics.success_rate) || 0
+      stats.avgConfidence = Number((statistics.average_confidence || 0) * 100)
+      stats.processingJobs = Number(statistics.processing_count) || 0
+      
+      console.log('=== 数据赋值完成 ===')
+      console.log('更新后的stats:', JSON.stringify(stats))
+      console.log('totalAnalyses:', stats.totalAnalyses, typeof stats.totalAnalyses)
+      console.log('successRate:', stats.successRate, typeof stats.successRate)  
+      console.log('avgConfidence:', stats.avgConfidence, typeof stats.avgConfidence)
+      console.log('processingJobs:', stats.processingJobs, typeof stats.processingJobs)
+      
+      showMessage.success('统计数据加载成功')
+      
+    } else {
+      console.warn('API响应格式错误:', JSON.stringify(response, null, 2))
+      console.warn('API响应数据格式错误:', JSON.stringify(response.data, null, 2))
+      showMessage.warning('API响应格式错误')
     }
   } catch (error) {
-    console.error('Failed to load statistics:', error)
-    showMessage.error('加载统计数据失败：请确认您有足够的权限')
+    console.error('加载统计数据失败:', error)
+    showMessage.error(`加载统计数据失败: ${error.message}`)
+  }
+}
+
+const loadRecentResults = async () => {
+  // 只检查认证状态，让API处理权限控制
+  if (!isAuthenticated.value) {
+    console.warn('用户未认证，跳过最近结果加载')
+    return
+  }
+  
+  console.log('开始加载最近分析结果...')
+  
+  try {
+    const response = await getRecentAnalysisResults(5)
+    
+    if (response.data && response.data.success) {
+      // 转换API响应格式为前端需要的格式
+      recentResults.value = response.data.results.map(result => ({
+        success: result.success,
+        document_info: {
+          filename: result.document_name,
+          type: 'unknown',
+          size: 0,
+          analysis_duration: result.analysis_duration
+        },
+        extracted_data: {
+          basic_info: {
+            name: result.product_info.name,
+            code: result.product_info.code,
+            category: result.product_info.category,
+            base_price: 0,
+            description: ''
+          },
+          specifications: {},
+          features: [],
+          application_scenarios: [],
+          accessories: [],
+          certificates: [],
+          support_info: {
+            warranty: { period: '', coverage: '', terms: [] },
+            contact_info: {},
+            service_promises: []
+          }
+        },
+        confidence_scores: {
+          basic_info: result.confidence.basic_info,
+          specifications: result.confidence.specifications,
+          features: result.confidence.features,
+          overall: result.confidence.overall
+        },
+        validation: {
+          valid: true,
+          warnings: [],
+          suggestions: [],
+          completeness_score: result.confidence.overall
+        },
+        summary: `${result.product_info.name} - ${result.confidence.overall * 100}% 置信度`,
+        text_preview: '',
+        analysis_timestamp: new Date(result.analysis_date).getTime(),
+        id: result.id,
+        created_product_id: result.created_product_id
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to load recent results:', error)
+    showMessage.error('加载最近分析结果失败')
   }
 }
 
@@ -365,6 +451,45 @@ const checkModelStatus = () => {
   
   // 模拟响应时间变化
   avgResponseTime.value = Math.floor(Math.random() * 500) + 600
+}
+
+// 使用组件级别的ref存储定时器引用，确保能正确清理
+const updateInterval = ref<NodeJS.Timeout | null>(null)
+
+// 清理现有定时器的函数
+const clearUpdateInterval = () => {
+  if (updateInterval.value) {
+    clearInterval(updateInterval.value)
+    updateInterval.value = null
+    console.log('定时器已清理')
+  }
+}
+
+// 启动定时器的函数
+const startUpdateInterval = () => {
+  // 先清理任何现有的定时器
+  clearUpdateInterval()
+  
+  // 只有在用户认证且有权限时才启动定时器
+  if (isAuthenticated.value && hasPermission.value) {
+    updateInterval.value = setInterval(() => {
+      console.log('定时器触发，检查用户状态...')
+      // 再次检查用户状态，防止在用户登出后继续调用
+      if (isAuthenticated.value && hasPermission.value) {
+        checkModelStatus()
+        // 暂时注释掉API调用，避免无限循环
+        // loadStatistics()
+        // loadRecentResults()
+      } else {
+        console.log('用户状态已变化，清理定时器')
+        clearUpdateInterval()
+      }
+    }, 300000) // 改为5分钟检查一次，减少API调用频率
+    
+    console.log('定时器已启动(5分钟间隔)')
+  } else {
+    console.log('用户未认证或无权限，跳过定时器启动')
+  }
 }
 
 onMounted(async () => {
@@ -395,13 +520,20 @@ onMounted(async () => {
   }
   
   // 权限验证通过，加载数据
-  loadStatistics()
+  await loadStatistics()
+  await loadRecentResults()
   checkModelStatus()
   
-  // 定期检查模型状态
-  setInterval(checkModelStatus, 30000) // 每30秒检查一次
+  // 启动定时器
+  startUpdateInterval()
   
   showMessage.success('AI智能分析系统已就绪，基于智谱AI GLM-4模型提供服务')
+})
+
+// 页面卸载时清理定时器
+onUnmounted(() => {
+  console.log('组件卸载，清理定时器')
+  clearUpdateInterval()
 })
 </script>
 

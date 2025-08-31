@@ -196,7 +196,8 @@ export interface AnalysisStatistics {
   successful_analyses: number
   success_rate: number
   average_confidence: number
-  period_days: number
+  processing_count: number
+  period_days?: number
 }
 
 export interface AnalysisStatisticsResponse {
