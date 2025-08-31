@@ -138,19 +138,35 @@ class PerformanceMonitor:
         
         try:
             with self._lock:
-                # CPU使用率
-                cpu_percent = psutil.cpu_percent(interval=None)
+                # CPU使用率 - 捕获具体异常
+                try:
+                    cpu_percent = psutil.cpu_percent(interval=None)
+                except Exception as cpu_err:
+                    logger.debug(f"CPU指标收集失败: {cpu_err}")
+                    cpu_percent = 0.0
                 
                 # 内存使用率
-                memory = psutil.virtual_memory()
-                memory_percent = memory.percent
+                try:
+                    memory = psutil.virtual_memory()
+                    memory_percent = memory.percent
+                except Exception as mem_err:
+                    logger.debug(f"内存指标收集失败: {mem_err}")
+                    memory_percent = 0.0
                 
                 # 磁盘使用率
-                disk = psutil.disk_usage('/')
-                disk_percent = disk.percent
+                try:
+                    disk = psutil.disk_usage('/')
+                    disk_percent = disk.percent
+                except Exception as disk_err:
+                    logger.debug(f"磁盘指标收集失败: {disk_err}")
+                    disk_percent = 0.0
                 
-                # 网络连接数
-                connections = len(psutil.net_connections())
+                # 网络连接数 - 这个可能有权限问题
+                try:
+                    connections = len(psutil.net_connections())
+                except Exception as net_err:
+                    logger.debug(f"网络连接指标收集失败: {net_err}")
+                    connections = 0
                 
                 timestamp = time.time()
                 
@@ -167,19 +183,22 @@ class PerformanceMonitor:
                     if len(self.system_metrics[key]) > max_points:
                         self.system_metrics[key] = self.system_metrics[key][-max_points:]
                 
-                # 检查系统阈值
-                if memory_percent > self.thresholds['memory_usage_critical']:
-                    self._add_alert('critical', f"内存使用率危险: {memory_percent:.1f}%")
-                elif memory_percent > self.thresholds['memory_usage_warning']:
-                    self._add_alert('warning', f"内存使用率较高: {memory_percent:.1f}%")
+                # 检查系统阈值（仅在有有效数据时）
+                if memory_percent > 0:
+                    if memory_percent > self.thresholds['memory_usage_critical']:
+                        self._add_alert('critical', f"内存使用率危险: {memory_percent:.1f}%")
+                    elif memory_percent > self.thresholds['memory_usage_warning']:
+                        self._add_alert('warning', f"内存使用率较高: {memory_percent:.1f}%")
                 
-                if cpu_percent > self.thresholds['cpu_usage_critical']:
-                    self._add_alert('critical', f"CPU使用率危险: {cpu_percent:.1f}%")
-                elif cpu_percent > self.thresholds['cpu_usage_warning']:
-                    self._add_alert('warning', f"CPU使用率较高: {cpu_percent:.1f}%")
+                if cpu_percent > 0:
+                    if cpu_percent > self.thresholds['cpu_usage_critical']:
+                        self._add_alert('critical', f"CPU使用率危险: {cpu_percent:.1f}%")
+                    elif cpu_percent > self.thresholds['cpu_usage_warning']:
+                        self._add_alert('warning', f"CPU使用率较高: {cpu_percent:.1f}%")
                 
         except Exception as e:
-            logger.error(f"记录系统指标失败: {str(e)}")
+            # 减少日志级别，避免大量错误日志
+            logger.debug(f"记录系统指标失败: {str(e)}")
     
     def _add_alert(self, level: str, message: str):
         """添加警告"""
