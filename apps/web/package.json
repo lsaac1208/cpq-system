@@ -1,7 +1,7 @@
 {
   "name": "cpq-web",
-  "version": "1.0.0",
-  "description": "CPQ System Frontend",
+  "version": "1.2.0",
+  "description": "CPQ System Frontend - Professional Configure, Price, Quote Management Platform",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -69,5 +69,24 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lsaac1208/cpq-system.git"
+  },
+  "keywords": [
+    "cpq",
+    "configure-price-quote",
+    "vue3",
+    "typescript",
+    "element-plus",
+    "business-management",
+    "ai-analysis"
+  ],
+  "author": "lsaac1208",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lsaac1208/cpq-system/issues"
+  },
+  "homepage": "https://github.com/lsaac1208/cpq-system#readme"
 }
