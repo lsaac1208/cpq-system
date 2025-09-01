@@ -912,49 +912,92 @@ class DocumentProcessor:
                 raise ValueError(f"Failed to extract text from RTF: {str(e)} / {str(e2)}")
     
     def _clean_extracted_text(self, text: str) -> str:
-        """清理从文档中提取的文本"""
+        """清理从文档中提取的文本 - 增强版，专门处理.doc文件的二进制垃圾数据"""
         import re
         
-        # 1. 移除控制字符和非打印字符（保留换行符、制表符和空格）
+        # 1. 🛡️ 高级二进制垃圾过滤 - 移除明显的编码错误字符
+        # 移除控制字符和非打印字符（保留换行符、制表符和空格）
         cleaned = ''.join(char for char in text if char.isprintable() or char in '\n\t ')
         
-        # 2. 使用正则表达式查找中文文本块
-        chinese_pattern = r'[\u4e00-\u9fff]+'
+        # 🔧 移除.doc解析常见的乱码字符模式
+        doc_garbage_patterns = [
+            r'[潗摲楍牣獯景煅慵楴湯畱瑡潩卍潗摲潄吀瑩敬牁慩袈霡蠈袢]+',  # 常见.doc乱码字符串
+            r'[㸳㠴㔷㤸㜹㈰㐱㠲㌳㘴㔵㘶㠷㤸㠹]+',  # 十六进制乱码
+            r'[屜屝屬屭屨屪屢屣層履屦屧屨屩屲]+',  # Word结构字符
+            r'[▉▊▋▌▍▎▏█▄▀■□▲△▼▽◆◇○●◎☆★]+',  # OLE图形字符
+            r'[\u0080-\u00ff]{2,}',              # Latin-1扩展字符乱码
+            r'[\ue000-\uf8ff]+',                 # 私用区字符
+            r'[\ufeff\ufffe]+',                  # 字节序标记
+        ]
+        
+        for pattern in doc_garbage_patterns:
+            cleaned = re.sub(pattern, ' ', cleaned)
+            
+        # 🔧 移除编码错误产生的替代字符和问号串
+        cleaned = re.sub(r'[�?]{2,}', ' ', cleaned)
+        
+        # 2. 🔍 智能文本分割和识别
+        # 使用改进的正则表达式查找中文文本块
+        chinese_pattern = r'[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+'
         chinese_matches = re.findall(chinese_pattern, cleaned)
         
-        # 3. 查找英文文本块（连续的字母、数字和基本标点）
-        english_pattern = r'[a-zA-Z0-9\s\.,;:!?\-()\'"\[\]{}]+'
+        # 查找英文文本块（更严格的模式，排除乱码）
+        english_pattern = r'[a-zA-Z][a-zA-Z0-9\s\.,;:!?\-()\'"\[\]{}]{3,}'
         english_matches = re.findall(english_pattern, cleaned)
         
-        # 4. 组合有意义的文本
+        # 查找技术数据块（数字+单位的模式）
+        tech_data_pattern = r'\d+[\w\s]*[A-Za-z%°℃Ω/\-]{1,5}'
+        tech_matches = re.findall(tech_data_pattern, cleaned)
+        
+        # 3. 🧹 智能文本重组
         meaningful_text = []
         
-        # 添加中文文本
+        # 添加中文文本（更严格的过滤）
         for match in chinese_matches:
-            if len(match.strip()) >= 2:  # 至少2个中文字符
-                meaningful_text.append(match.strip())
+            clean_match = match.strip()
+            # 检查是否包含足够的汉字内容
+            chinese_char_count = len(re.findall(r'[\u4e00-\u9fff]', clean_match))
+            if chinese_char_count >= 2 and len(clean_match) >= 3:
+                # 额外检查：确保不是乱码汉字
+                if not self._contains_garbage_chinese(clean_match):
+                    meaningful_text.append(clean_match)
         
-        # 添加英文文本（过滤掉过短的片段）
+        # 添加英文文本（过滤掉可能的乱码）
         for match in english_matches:
             clean_match = match.strip()
             words = clean_match.split()
-            if len(words) >= 3 or len(clean_match) >= 10:  # 至少3个单词或10个字符
+            # 更严格的英文内容验证
+            if (len(words) >= 2 and len(clean_match) >= 8 and 
+                self._is_meaningful_english(clean_match)):
                 meaningful_text.append(clean_match)
         
-        # 5. 如果没有找到有意义的文本，使用基本清理
+        # 添加技术数据
+        for match in tech_matches:
+            clean_match = match.strip()
+            if len(clean_match) >= 3 and not self._is_corrupted_tech_data(clean_match):
+                meaningful_text.append(clean_match)
+        
+        # 4. 🔄 如果智能提取失败，使用保守的基本清理
         if not meaningful_text:
+            logger.warning("智能文本提取未找到有意义内容，使用保守清理")
             # 基本清理：移除连续的空白字符
             cleaned = re.sub(r'\s+', ' ', cleaned)
-            # 移除行首行尾空白
-            cleaned = '\n'.join(line.strip() for line in cleaned.split('\n') if line.strip())
-            return cleaned
+            # 移除明显的垃圾行
+            lines = []
+            for line in cleaned.split('\n'):
+                line = line.strip()
+                if (line and len(line) > 2 and 
+                    not self._is_obvious_garbage_line(line)):
+                    lines.append(line)
+            return '\n'.join(lines)
         
-        # 6. 组合有意义的文本
+        # 5. 🎯 组合有意义的文本
         result = '\n'.join(meaningful_text)
         
-        # 7. 最终清理
-        result = re.sub(r'\n+', '\n', result)  # 移除多余换行
-        result = re.sub(r'[ \t]+', ' ', result)  # 规范空格
+        # 6. 🧹 最终清理和规范化
+        result = re.sub(r'\n\s*\n', '\n\n', result)  # 规范段落间距
+        result = re.sub(r'[ \t]+', ' ', result)      # 规范空格
+        result = re.sub(r'\n{3,}', '\n\n', result)   # 限制最多双换行
         
         return result.strip()
     
@@ -1384,6 +1427,96 @@ class DocumentProcessor:
                 score += 0.1
         
         return min(max(score, 0.0), 1.0)
+    
+    def _contains_garbage_chinese(self, text: str) -> bool:
+        """检测中文文本是否包含乱码汉字"""
+        # 常见的.doc解析错误产生的乱码汉字
+        garbage_chinese_chars = set([
+            '潗', '摲', '楍', '牣', '獯', '景', '煅', '慵', '楴', '湯', '畱', '瑡', '潩',
+            '卍', '潗', '摲', '潄', '吀', '瑩', '敬', '牁', '慩', '袈', '霡', '蠈', '袢',
+            '屜', '屝', '屬', '屭', '屨', '屪', '屢', '屣', '層', '履', '屦', '屧', '屨', '屩', '屲'
+        ])
+        
+        garbage_count = sum(1 for c in text if c in garbage_chinese_chars)
+        garbage_ratio = garbage_count / len(text) if text else 0
+        
+        # 如果垃圾汉字超过20%，认为是乱码
+        return garbage_ratio > 0.2
+    
+    def _is_meaningful_english(self, text: str) -> bool:
+        """检测英文文本是否有意义（非乱码）"""
+        import re
+        
+        # 检查是否包含常见的英文单词模式
+        words = text.lower().split()
+        
+        # 技术文档常见的英文单词
+        common_technical_words = set([
+            'the', 'and', 'of', 'to', 'a', 'in', 'for', 'is', 'on', 'with', 'as', 'by',
+            'test', 'voltage', 'current', 'power', 'frequency', 'protection', 'relay',
+            'device', 'equipment', 'specification', 'parameter', 'technical', 'model',
+            'product', 'range', 'accuracy', 'measurement', 'control', 'system',
+            'output', 'input', 'signal', 'data', 'interface', 'communication'
+        ])
+        
+        meaningful_words = 0
+        for word in words:
+            clean_word = re.sub(r'[^a-z]', '', word)  # 移除标点
+            if (len(clean_word) >= 3 and 
+                (clean_word in common_technical_words or 
+                 re.match(r'^[a-z]+$', clean_word))):  # 纯英文字母组成
+                meaningful_words += 1
+        
+        # 如果有意义的单词比例超过60%，认为是有意义的英文
+        return meaningful_words / max(len(words), 1) > 0.6
+    
+    def _is_corrupted_tech_data(self, text: str) -> bool:
+        """检测技术数据是否损坏"""
+        import re
+        
+        # 检查是否包含明显的乱码模式
+        corruption_patterns = [
+            r'[潗摲楍牣獯景煅慵楴湯畱瑡潩卍潗摲潄吀瑩敬牁慩袈霡蠈袢]',  # 乱码汉字
+            r'[▉▊▋▌▍▎▏█▄▀■□▲△▼▽◆◇○●◎☆★]',  # 图形字符
+            r'[\ue000-\uf8ff]',  # 私用区字符
+            r'[�?]{2,}',         # 替代字符
+        ]
+        
+        for pattern in corruption_patterns:
+            if re.search(pattern, text):
+                return True
+        
+        return False
+    
+    def _is_obvious_garbage_line(self, line: str) -> bool:
+        """检测是否为明显的垃圾行"""
+        import re
+        
+        if not line or len(line.strip()) < 2:
+            return True
+        
+        line = line.strip()
+        
+        # 检测明显的垃圾模式
+        garbage_patterns = [
+            r'^[潗摲楍牣獯景煅慵楴湯畱瑡潩卍潗摲潄吀瑩敬牁慩袈霡蠈袢]+$',  # 全乱码汉字
+            r'^[▉▊▋▌▍▎▏█▄▀■□▲△▼▽◆◇○●◎☆★]+$',  # 全图形字符
+            r'^[\u0080-\u00ff]{2,}$',         # 全高位ASCII
+            r'^[�?]{2,}$',                    # 全替代字符
+            r'^(.)\1{5,}$',                   # 同一字符重复6次以上
+            r'^[\s\-\+\=\|]{3,}$',           # 表格分隔符
+        ]
+        
+        for pattern in garbage_patterns:
+            if re.search(pattern, line):
+                return True
+        
+        # 检测可读性：如果可读字符少于50%，认为是垃圾
+        readable_chars = sum(1 for c in line if (c.isalnum() or c.isspace() or 
+                                                c in '.,;:!?-()[]{}""''、。，；：！？'))
+        readable_ratio = readable_chars / len(line)
+        
+        return readable_ratio < 0.5
     
     def _clean_ocr_text(self, text: str) -> str:
         """清理OCR提取的文本"""
