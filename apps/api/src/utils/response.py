@@ -1,6 +1,6 @@
 from flask import jsonify
 from typing import Any, Dict, List, Optional, Union
-from datetime import datetime
+from datetime import datetime, timezone
 
 class APIResponse:
     """Standardized API response utility."""
@@ -11,7 +11,7 @@ class APIResponse:
         response = {
             'success': True,
             'message': message,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
         }
         
         if data is not None:
@@ -25,7 +25,7 @@ class APIResponse:
         response = {
             'success': False,
             'error': message,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
         }
         
         if details is not None:

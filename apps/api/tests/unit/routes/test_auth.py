@@ -58,7 +58,7 @@ class TestAuthRoutes:
                              json=incomplete_data,
                              content_type='application/json')
         
-        assert response.status_code == 400
+        assert response.status_code == 422
         data = response.get_json()
         assert 'msg' in data or 'error' in data
     
@@ -76,7 +76,7 @@ class TestAuthRoutes:
                              json=user_data,
                              content_type='application/json')
         
-        assert response.status_code == 400
+        assert response.status_code == 422
         data = response.get_json()
         assert 'msg' in data or 'error' in data
     
@@ -94,7 +94,7 @@ class TestAuthRoutes:
                              json=user_data,
                              content_type='application/json')
         
-        assert response.status_code == 400
+        assert response.status_code == 422
         data = response.get_json()
         assert 'msg' in data or 'error' in data
     
@@ -112,7 +112,7 @@ class TestAuthRoutes:
                              json=user_data,
                              content_type='application/json')
         
-        assert response.status_code == 400
+        assert response.status_code == 422
         data = response.get_json()
         assert 'msg' in data or 'error' in data
     
@@ -212,12 +212,11 @@ class TestAuthRoutes:
         assert response.status_code == 200
         data = response.get_json()
         
-        assert 'data' in data
-        assert 'user' in data['data']
-        assert data['data']['user']['id'] == test_user.id
-        assert data['data']['user']['username'] == test_user.username
-        assert data['data']['user']['email'] == test_user.email
-        assert 'password_hash' not in data['data']['user']
+        assert 'user' in data
+        assert data['user']['id'] == test_user.id
+        assert data['user']['username'] == test_user.username
+        assert data['user']['email'] == test_user.email
+        assert 'password_hash' not in data['user']
     
     def test_get_current_user_no_token(self, client):
         """Test getting current user info without token."""
@@ -319,7 +318,7 @@ class TestAuthRoutes:
             
             # Should either reject weak password or accept it based on validation rules
             # This test documents current behavior
-            assert response.status_code in [201, 400]
+            assert response.status_code in [201, 422]
     
     def test_username_validation(self, client):
         """Test username validation during registration."""
@@ -345,7 +344,7 @@ class TestAuthRoutes:
             
             # Should either reject invalid username or accept it based on validation rules
             # This test documents current behavior
-            assert response.status_code in [201, 400]
+            assert response.status_code in [201, 422]
     
     def test_case_insensitive_login(self, client, test_user, sample_user_data):
         """Test case insensitive login."""

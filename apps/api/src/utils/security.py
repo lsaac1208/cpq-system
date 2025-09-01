@@ -1,7 +1,7 @@
 import re
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import current_app
 from typing import Optional, Dict, List
 import ipaddress
@@ -110,7 +110,7 @@ class RateLimiter:
         Returns:
             Dict with is_allowed boolean and remaining attempts
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         window_start = now - timedelta(minutes=window_minutes)
         
         # Check if permanently blacklisted
@@ -154,7 +154,7 @@ class RateLimiter:
         """Record a failed attempt."""
         if identifier not in self._attempts:
             self._attempts[identifier] = []
-        self._attempts[identifier].append(datetime.utcnow())
+        self._attempts[identifier].append(datetime.now(timezone.utc))
 
 
 class SecurityHeaders:

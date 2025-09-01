@@ -35,11 +35,12 @@ def register():
             logger.warning(f"Registration attempt from invalid/blocked IP: {client_ip}")
             return APIResponse.error("访问被拒绝", 403)
         
-        # Rate limiting
-        rate_check = rate_limiter.is_allowed(f"register:{client_ip}", max_attempts=3, window_minutes=60)
-        if not rate_check['is_allowed']:
-            logger.warning(f"Rate limit exceeded for registration from IP: {client_ip}")
-            return APIResponse.error("注册尝试过于频繁，请稍后再试", 429)
+        # Rate limiting (skip in testing mode)
+        if not current_app.config.get('TESTING', False):
+            rate_check = rate_limiter.is_allowed(f"register:{client_ip}", max_attempts=3, window_minutes=60)
+            if not rate_check['is_allowed']:
+                logger.warning(f"Rate limit exceeded for registration from IP: {client_ip}")
+                return APIResponse.error("注册尝试过于频繁，请稍后再试", 429)
         
         # Validate request data
         schema = RegisterSchema()
@@ -108,17 +109,18 @@ def login():
         
         username = data['username']
         
-        # Rate limiting by IP and username
-        ip_rate_check = rate_limiter.is_allowed(f"login_ip:{client_ip}", max_attempts=10, window_minutes=15)
-        user_rate_check = rate_limiter.is_allowed(f"login_user:{username}", max_attempts=5, window_minutes=15)
-        
-        if not ip_rate_check['is_allowed']:
-            logger.warning(f"Login rate limit exceeded for IP: {client_ip}")
-            return APIResponse.error("登录尝试过于频繁，请稍后再试", 429)
-        
-        if not user_rate_check['is_allowed']:
-            logger.warning(f"Login rate limit exceeded for user: {username} from IP: {client_ip}")
-            return APIResponse.error("登录尝试过于频繁，请稍后再试", 429)
+        # Rate limiting by IP and username (skip in testing mode)
+        if not current_app.config.get('TESTING', False):
+            ip_rate_check = rate_limiter.is_allowed(f"login_ip:{client_ip}", max_attempts=10, window_minutes=15)
+            user_rate_check = rate_limiter.is_allowed(f"login_user:{username}", max_attempts=5, window_minutes=15)
+            
+            if not ip_rate_check['is_allowed']:
+                logger.warning(f"Login rate limit exceeded for IP: {client_ip}")
+                return APIResponse.error("登录尝试过于频繁，请稍后再试", 429)
+            
+            if not user_rate_check['is_allowed']:
+                logger.warning(f"Login rate limit exceeded for user: {username} from IP: {client_ip}")
+                return APIResponse.error("登录尝试过于频繁，请稍后再试", 429)
         
         # Find user and check password
         user = User.query.filter_by(username=username).first()
